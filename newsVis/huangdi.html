@@ -1,0 +1,486 @@
+<!doctype html>
+<html ng-app="tlApp">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+
+    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="icon" type="image/x-icon" href="static/img/favicon.ico" />
+
+
+    <script src="static/js/lib/jquery-latest.min.js"></script>
+    <script src="static/js/lib/d3.min.js" charset="utf-8"></script>
+    <script src="static/js/lib/d3-timeline.js" charset="utf-8"></script>
+
+    <script src="static/js/lib/angular.js"></script>
+    <script src="static/js/dataWrangling.js"></script>
+    <script src="static/js/domScript.js"></script>
+    <script src="static/js/setupTLels.js"></script>
+    <script src="static/js/downloadFctns.js"></script>
+    <script src="static/js/angularScript.js"></script>
+
+    <script type="text/javascript" src="static/js/lib/jszip.min.js"></script>
+
+    <title>TimeLineCurator v0.4</title>
+ <style>
+     .axis path,
+	 .axis line  
+	     { fill:none;
+		   stroke:black;
+		   shape-rendering:crispEdges;
+		 }
+	 .axis text
+	    { font-family:sans-serif;
+		  font-size: 8px;
+		}
+	 .MyRect
+	    { fill:yellow;
+		  stroke:blue;
+		  stroke-width: 2px;
+		}
+	 .MyText
+	    { fill:blue;
+		  text-anchor:middle;
+		   font-size:8px;
+		}
+	.titletext
+	    { fill:blue;
+		  text-anchor:middle;
+		  font-size:10px;
+		}
+	.mycircle
+	    {fill:steelblue; 
+		  stroke: brown;
+		  stroke-width: 2px;
+		}
+	.durcircle
+	    {fill:green; 
+		  stroke: brown;
+		  stroke-width: 2px;
+		}
+    .MyPath {
+		fill: none;
+		stroke: black;
+		stroke-width: 2px;
+		    }
+    .timePath  
+	   { fill: none;
+	     stroke: brown;
+		 stroke-width: 2px;
+	   }
+	
+
+  </style>
+</head>
+<script type="text/javascript">
+
+    var app = angular.module('tlApp', []);
+    app.controller('MainCtrl',function($scope){
+        $('body').keydown(function(d){
+            var key=d.keyCode;
+            if(key==8||key==110){
+                var thisid=parseInt($('.highlighted').attr('id')[7])-1;
+                $scope.timexes[thisid].deleted=true;
+                // $scope.makeSelection(thisid+2);
+                // console.log($scope.timexes[thisid].deleted);
+            }
+            if(key==107){
+                var thisid=parseInt($('.highlighted').attr('id')[7])-1;
+                $scope.timexes[thisid].deleted=false;
+            }
+            // alert(key);
+        })
+        $scope.sortBy = [
+        { title : "Order By id" , val : "id" },
+        { title : "Order By time" , val : "time" },
+        { title : "Order By content" , val : "content"},
+    ];
+        
+        $scope.orderByVal='time';
+        $scope.orderReverse=false;
+
+        $scope.timexes = [
+        { time:'2015 9/21',content:'take a rest',id:1,typ:'date',touched:true,deleted:false,textId:1,sentId:1},
+        { time:'2015 9/14',content:'take a shower',id:2,typ:'date',touched:true,deleted:false,textId:1},
+        { time:"2014/9/10-2015/12/2",content:'have a talk',id:3,typ:'duration',touched:true,deleted:true,textId:1},
+        { time:'2015 9/12',content:'leave home for work',id:4,typ:'date',touched:false,deleted:false,textId:1},
+        { time:'2015 9/25',content:'watch a movie',id:5,typ:'date',touched:false,deleted:false,textId:1},
+        ];
+    
+        $scope.clickList=function(d){
+            // console.log(tx);
+            var id=d.id;
+            $scope.makeSelection(id);
+        }
+
+        $scope.makeSelection=function(id){
+            //List中的高亮
+            var thisid="#Listid_"+id;
+            // console.log(thisid);
+            if($(thisid).hasClass('highlighted')){
+                $(thisid).removeClass('highlighted');
+            }else{
+                $('#listData .highlighted').removeClass('highlighted');
+                $(thisid).addClass('highlighted');  
+            }
+            //Sent中的高亮
+            //TimeLine中的高亮
+        }
+        
+        // $scope.addedText=[
+        // {textId:'1',content:'',title:''}
+        // ]
+		
+$scope.startit=function()
+	{
+		
+var total=0;
+var liney=130.0;
+var width=750;
+var height=180;
+
+var body=d3.select("#topBox");
+
+var svg=body.append("svg")
+            .attr("width", 750)
+			.attr("height",180)
+
+var dataset=new Array();
+var hashset=new Array();
+var years=new Array();
+var months=new Array();
+var dates=new Array();
+var events=new Array();
+
+hashrect=new Array();
+  
+var intervalset=new Array();  
+var intertotal=0;
+ function timeScale(t)
+ { return 30.0+(t-starts)*(720.0-30.0)/(ends-starts);
+ }
+  
+var  starts=2008.0;
+var  ends=2013.0;
+
+ 
+  function changeaxis()
+    {    var update = svg.selectAll(".mycircle")
+					.data(dataset);
+			 update.transition()
+		        .duration(800)
+		        .attr("cx", function(d){ return timeScale(d); });
+             for (i=0; i<=10; i++) 
+			    {  nowt= (starts*1.0)+i*(ends-starts)/10.0;	
+                 nowyear=parseInt(nowt);
+                 nowmonth=1+Math.round( (nowt-nowyear)*12 );
+				 if (nowmonth>12) nowmonth=12;
+	             timetext[i]=nowyear+"-"+nowmonth;
+                }				 
+	    var update2 = svg.selectAll(".MyText")
+					.data(timetext);
+			 update2.transition()
+		        .duration(800)
+		        .text( function(d){ return d; });	
+	    var update3 = svg.selectAll(".MyRect")
+					.data(intervalset);
+			 update3.transition()
+		        .duration(800)
+		        .attr( "x", function(d){ return timeScale(d[0]); })
+                .attr( "width", function(d) {return timeScale(d[1])-timeScale(d[0]); } );				
+	} 
+	
+ function checknear(newdata,nums,nums2)
+   {  var x1;
+      var x2;    
+	  x1=timeScale(newdata);
+	  var getlevel=0;
+	  var flag=1;
+   
+    while (flag==1)
+	   { flag=0;
+	    for (i=0; i<nums; i++)
+		 {  x2=timeScale(dataset[i]);
+       if ( (x1-x2)*(x1-x2)<390.0 && getlevel==hashset[i])
+	      {getlevel=hashset[i]+1; flag=1; break;}
+	     }
+	   if (flag==0 && nums2>=0)
+       for (i=0; i<=nums2; i++)
+	     {  x2=timeScale(intervalset[i][0]);
+		    x3=timeScale(intervalset[i][1]);
+       if (getlevel==hashrect[i] && x1+10.0>x2 && x1-10.0<x3) 	 
+            {getlevel=hashrect[i]+1;
+			  flag=1;
+			  break;
+            }
+         }
+	   }
+	   hashset[nums]=getlevel;
+	  return liney-20.0-getlevel*22.0;
+   } 
+
+ function checkrect(sdata, edata, nums, nums2)
+   {  var getlevel=0;
+      var x1=timeScale(sdata);
+	  var x2=timeScale(edata);
+	  var x3;
+	  var flag=1;
+	  while (flag==1)
+	   { flag=0;
+	    for (i=0; i<=nums; i++)
+		 {  x3=timeScale(dataset[i]);
+       if (x3+10.0>x1 && x3-10.0<x2 && getlevel==hashset[i])
+	      {getlevel=hashset[i]+1; flag=1; break;}
+	     }
+	   if (flag==0)
+       for (i=0; i<nums2; i++)
+       if (getlevel==hashrect[i] && sdata<intervalset[i][1] && edata>intervalset[i][0]) 	 
+            {getlevel=hashrect[i]+1;
+			  flag=1;
+			  break;
+            }
+       }
+	   
+	  hashrect[nums2]=getlevel;
+      return (liney-30.0-22.0*getlevel);	   
+   }
+ function addit( nums, nums2)
+   {
+	 var changeX=0;
+	  if (dataset[nums]>ends) {changeX=1; ends=dataset[nums]; }
+      if (dataset[nums]<starts) {changeX=1; starts=dataset[nums]; }
+	
+     if (changeX==1)
+	        { 
+			   svg.append("circle")
+		    .attr("cx",timeScale(dataset[nums]))
+			.attr("cy",checknear(dataset[nums],nums,nums2))
+			.attr("r", 10)
+			.attr("class","mycircle");
+		  changeaxis();
+			}
+	else {    
+	        svg.append("circle")
+		    .attr("cx",timeScale(dataset[nums]))
+			.attr("cy",checknear(dataset[nums],nums,nums2))
+			.attr("r", 10)
+			.attr("class","mycircle");
+		}
+   }
+   
+  function addinterval(sdata,edata, nums,nums2)
+    { var changeX=0;
+	  if (sdata<starts) {starts=sdata; changeX=1;}
+      if (edata>ends) {ends=edata; changeX=1;}
+      if (changeX==1) changeaxis();
+	    
+	  /* var rects=svg.selectAll(".MyRect")
+               .data(intervalset)
+			   .enter()
+			   .append("rect")
+			   .attr("class","MyRect")
+			   .attr("x", function(d)
+			        {return timeScale(d[0]); }
+					)
+			   .attr("y", function(d)
+			         {      
+					   return checkrect(d[0],d[1],nums,nums2); 
+					 }
+					)
+			   .attr("width",function(d)
+			        { return timeScale(d[1])-timeScale(d[0]); }
+					)
+			   .attr("height", function()
+			        {return 20;}
+					)  
+	  */
+	    svg.append("rect")
+		    .attr("x",timeScale(sdata))
+			.attr("y",checkrect(sdata, edata,nums,nums2))
+			.attr("width", timeScale(edata)-timeScale(sdata) )
+			.attr("height",20)
+			.attr("class","MyRect");
+	  }
+	
+	
+    total=0;	
+	intertotal=0;
+	datagive=[{x:30, y:130}, {x:740, y:130}];
+// 线段生成器
+	var line = d3.svg.line()
+			.x( function(d){ return d.x; } )
+			.y( function(d){ return d.y; } )
+			.interpolate("line");
+
+	svg.append("path")
+		.attr("class","MyPath")
+		.attr("d", line(datagive) );
+
+	var timetext=new Array();		 
+
+for (i=0; i< $scope.timexes.length; i++)
+	 { 
+	   if ($scope.timexes[i].typ=='date' )
+	       { var chars=$scope.timexes[i].time;
+		     total++;
+		     years[total-1]=parseInt( chars );
+		     var splace=chars.indexOf(' ')+1;
+			 var eplace=chars.indexOf('/');
+			 var getm=chars.substr(splace, eplace-splace);
+			 months[total-1]=parseInt(getm);
+			// alert(months[0]);
+			 var getd=chars.substr(eplace+1);
+			 dates[total-1]=parseInt(getd);
+			  dataset[total-1]=(years[total-1]*1.0)+((months[total-1]-1)/12.0)+ (dates[total-1]/365.0);
+			
+			  hashset[total-1]=0;
+			  if (i==0) {starts=dataset[0]; ends=dataset[0];}
+               else { if (starts>dataset[total-1]) starts=dataset[total-1];
+			          if (ends<dataset[total-1]) ends=dataset[total-1];
+			        }					
+		   }
+		else
+		 { var chars=$scope.timexes[i].time;
+		   intertotal++;
+		   var syear=parseInt(chars);
+		    eplace=chars.indexOf('/');
+			chars=chars.substr(eplace+1);
+			eplace=chars.indexOf('/');
+		   getm=chars.substr(0,eplace);
+		   var smonth=parseInt(getm);
+		   chars=chars.substr(eplace+1);
+		   eplace=chars.indexOf('-');
+		   getd=chars.substr(0,eplace);
+		   var sday=parseInt(getd);
+		   chars=chars.substr(eplace+1);
+		   eplace=chars.indexOf('/');
+		    getm=chars.substr(0,eplace);
+		  var eyear=parseInt(getm);
+			chars=chars.substr(eplace+1);
+			eplace=chars.indexOf('/');
+		   getm=chars.substr(0,eplace);
+		   var emonth=parseInt(getm);
+		    chars=chars.substr(eplace+1);
+		   var eday=parseInt(chars);
+		   var inter1=syear*1.0+(smonth-1)/12.0+sday/365.0; 
+		   var inter2=eyear*1.0+(emonth-1)/12.0+eday/365.0; 
+		  intervalset[intertotal-1]=new Array(inter1,inter2);
+		  
+		  if (i==0) {starts=inter1; ends=inter2;}
+		  else { if (inter1<starts) starts=inter1;
+		         if (inter2>ends) ends=inter2;
+		       }
+		 }
+	 }
+
+	
+for (var i=0; i<=10; i++)
+   {  var nowt= (starts*1.0)+i*(ends-starts)/10.0;
+      datagive[0].x=timeScale(nowt);
+	  datagive[0].y=liney;
+	  datagive[1].x=timeScale(nowt);
+	  datagive[1].y=liney-10.0;
+	
+    	svg.append("path")
+		.attr("class","MyPath")
+		.attr("d", line(datagive) );
+	
+     var nowyear=parseInt(nowt);
+     var nowmonth=1+Math.round( (nowt-nowyear)*12 );
+	 timetext[i]=nowyear+"-"+nowmonth;
+   }
+   
+    var texts = svg.selectAll(".MyText")
+				.data(timetext)
+				.enter()
+				.append("text")
+				.attr("class","MyText")
+				.attr("x", function(d,i){
+					return timeScale(starts+i*(ends-starts)/10.0);
+				})
+				.attr("y", function(){
+					return liney+20.0;
+				})
+				.attr("dx",function(){
+					return 0;
+				})
+				.attr("dy",function(){
+					return 0;
+				})
+				.text(function(d){
+					return d;
+				});
+    
+  var tmpcx;
+  var tmpcy;
+        
+		
+		for (i=0; i<total; i++)
+	        {   tmpcx=timeScale(dataset[i]);
+			     tmpcy=checknear(dataset[i],i,-1); 
+        
+	    svg.append("circle")
+		    .attr("cx",tmpcx)
+			.attr("cy",tmpcy)
+			.attr("r", 10)
+			.attr("class","mycircle");
+			
+			}
+			
+	 for (i=0; i<intertotal; i++)		
+	     {svg.append("rect")
+		    .attr("x",timeScale(intervalset[i][0]))
+			.attr("y",checkrect(intervalset[i][0], intervalset[i][1],total-1,i))
+			.attr("width", timeScale(intervalset[i][1])-timeScale(intervalset[i][0]) )
+			.attr("height",20)
+			.attr("class","MyRect");
+		 }
+		
+	}	
+		
+		
+    });
+
+</script>
+<body ng-controller='MainCtrl'>
+<div id='topBox'>
+  <button ng-click="startit( )">start!</button>
+  
+</div>
+<div id='bottomBox'>
+ <div id="leftBox" ng-click='addtext'>
+
+        <!-- List Viewer -->
+        <div id="tablehead">
+            <!--table><tr>
+              <td-->
+
+            Sort list by:
+            <select
+                    ng-model="sortval"
+                    ng-change="orderByVal=sortval"
+                    ng-options="item.val as item.title for item in sortBy"
+                    ng-init="sortval=sortBy[1].val">
+            </select>
+              <span style="cursor:pointer;" ng-click="orderReverse=!orderReverse">
+                <span ng-if="orderReverse">&#9650;</span>
+                <span ng-if="!orderReverse">&#9660;</span>
+                </span>
+
+
+
+        </div>
+
+        <div id="listData">
+            <table>
+                <tr id="Listid_{{tx.id}}" ng-repeat="tx in timexes | orderBy: orderByVal:orderReverse" class="listEl" ng-click="clickList(tx)" ng-class="{deleted: tx.deleted}">
+                    <td><span class="bgColor_2 symbol_{{tx.typ}}">
+              <!-- <p ng-if="tx.touched"> &#10002; </p> -->
+            </span></td>
+                    <td>{{ tx.time }}</td>
+                    <td>{{ tx.content }}</td>
+                </tr>
+            </table>
+            <div class="statusBox" style="left:0;"><b>Events: {{timexes.length}}</b>, vague expressions:  0</div>
+        </div>
+    </div>
+</div>

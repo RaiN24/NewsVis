@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+  <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+  <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  <script src="static/js/lib/d3-timeline.js"></script>
+
+  <script type="text/javascript">
+    window.onload = function() {
+    var d = [
+            { times:[{"starting_time": 1355759910000, "ending_time": 1355761900000}}],content:"BEIJING - China's flight punctuality",id:2,typ:'date',touched:true,deleted:false,textId:1,sentId:5},
+            ];
+      var chart =d3.timeline();
+      var myTl=d3.select("#timeline").append("svg").attr("width",500).attr("height",500);
+      myTl
+    }
+  </script>
+</head>
+<body>
+  <div id="timeline">
+    </div>
+</body>
+</html>
